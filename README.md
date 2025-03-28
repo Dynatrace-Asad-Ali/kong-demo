@@ -1,4 +1,4 @@
-# Overview
+
 Kong is widely adopted API gateway and service mesh and provides cloud agnostic API gateway services to modern architecture. Not only does it provide load balancing but also allows user to use multiple plugins and policies to control the traffic. Implementing observability at the API gateway layer is crucial. As the API gateway serves as a central point for managing and routing traffic across distributed services, applying observability to it brings an enterprise-wide perspective on how applications are consumed.
 
 This repo contains a sample app that shows the integration between Kong and Dynatrace. This integration uses OpenTelemetry for traces and logs and Prometheus for metrics. Using this integration, customers will be able to connect traces, metrics and logs in Dynatrace. At high level, the integration architecture looks like this:
@@ -40,3 +40,4 @@ kubectl create secret tls kong-cluster-cert -n kong --cert=kong/tls.crt --key=ko
 helm install my-kong kong/kong -n kong --values kong/values.yaml
 kubectl apply -f kong/loadGenerator.yaml
 ```
+
