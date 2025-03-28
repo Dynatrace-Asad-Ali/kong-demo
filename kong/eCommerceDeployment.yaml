@@ -1,0 +1,251 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: kong-demo
+  labels:
+    name: kong-demo
+---  
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coupon
+  namespace: kong-demo
+  labels:
+    app: coupon
+spec:
+  selector:
+    matchLabels:
+      app: coupon
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-nodejs: "true"
+      labels:
+        app: coupon
+    spec:
+      containers:
+      - name: coupon
+        image: alikingdom/kong-demo-coupon:v0.1
+        imagePullPolicy: Always
+        env:
+          - name: MEMBERSHIP_SERVICE_HOST
+            value: "membership:8080"
+        ports:
+        - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: coupon
+  namespace: kong-demo
+spec:
+  selector:
+    app: coupon
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: kong-demo
+  labels:
+    app: frontend
+spec:
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: alikingdom/kong-demo-frontend:v0.1
+        imagePullPolicy: Always
+        securityContext:
+          runAsUser: 1000
+        env:
+        - name: INVENTORY_SERVICE_HOST
+          #value: inventory:8080
+          value: kong-kong-proxy.kong/inventory
+        - name: PRICING_SERVICE_HOST
+          #value: pricing:8080
+          value: kong-kong-proxy.kong/pricing
+        - name: COUPON_SERVICE_HOST
+          #value: coupon:8080
+          value: kong-kong-proxy.kong/coupon
+        ports:
+        - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: frontend
+  namespace: kong-demo
+spec:
+  selector:
+    app: frontend
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory
+  namespace: kong-demo
+  labels:
+    app: inventory
+spec:
+  selector:
+    matchLabels:
+      app: inventory
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-python: "true"
+      labels:
+        app: inventory
+    spec:
+      containers:
+      - name: inventory
+        image: alikingdom/kong-demo-inventory:v0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: inventory
+  namespace: kong-demo
+spec:
+  selector:
+    app: inventory
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: membership
+  namespace: kong-demo
+  labels:
+    app: membership
+spec:
+  selector:
+    matchLabels:
+      app: membership
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-go: "true"
+        instrumentation.opentelemetry.io/otel-go-auto-target-exe: "/membership"
+      labels:
+        app: membership
+    spec:
+      containers:
+      - name: membership
+        image: alikingdom/kong-demo-membership:v0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: membership
+  namespace: kong-demo
+spec:
+  selector:
+    app: membership
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pricing
+  namespace: kong-demo
+  labels:
+    app: pricing
+spec:
+  selector:
+    matchLabels:
+      app: pricing
+  template:
+    metadata:
+      annotations:
+        instrumentation.opentelemetry.io/inject-dotnet: "true"
+      labels:
+        app: pricing
+    spec:
+      containers:
+      - name: pricing
+        image: alikingdom/kong-demo-pricing:v0.1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: pricing
+  namespace: kong-demo
+spec:
+  selector:
+    app: pricing
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+  namespace: kong-demo
+  labels:
+    app: httpbin
+spec:
+  type: ClusterIP
+  ports:
+  - name: http
+    port: 8000
+    targetPort: 80
+  selector:
+    app: httpbin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+  namespace: kong-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: httpbin
+        version: v1
+    spec:
+      containers:
+      - image: docker.io/kong/httpbin
+        imagePullPolicy: IfNotPresent
+        name: httpbin
+        ports:
+        - containerPort: 8000

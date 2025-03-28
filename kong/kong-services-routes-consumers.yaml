@@ -1,0 +1,52 @@
+_format_version: "3.0"
+_info:
+  select_tags:
+  - kong-services-routes
+_konnect:
+  control_plane_name: Dynatrace-Kong-Integration
+consumers:
+- keyauth_credentials:
+  - key: consumer2
+  username: gold_buyer
+- keyauth_credentials:
+  - key: consumer1
+  username: platinum_buyer
+- keyauth_credentials:
+  - key: consumer3
+  username: silver_buyer
+services:
+- name: ecommerce_coupon_service
+  host: coupon.kong-demo
+  port: 8080
+  routes:
+  - name: ecommerce_coupon_route
+    paths:
+    - /coupon
+- name: ecommerce_inventory_service
+  host: inventory.kong-demo
+  port: 8080
+  routes:
+  - name: ecommerce_inventory_route
+    paths:
+    - /inventory
+- name: ecommerce_pricing_service
+  host: pricing.kong-demo
+  port: 8080
+  routes:
+  - name: ecommerce_pricing_route
+    paths:
+    - /pricing
+- name: ecommerce_buy_service
+  host: httpbin.kong-demo
+  port: 8000
+  routes:
+  - name: httpbin_route
+    path_handling: v0
+    paths:
+    - /httpbinroute
+    plugins:
+    - enabled: true
+      name: key-auth
+      config:
+        key_names:
+        - apikey

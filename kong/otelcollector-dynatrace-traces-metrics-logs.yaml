@@ -1,0 +1,115 @@
+apiVersion: opentelemetry.io/v1beta1
+kind: OpenTelemetryCollector
+metadata:
+  name: collector-kong
+  namespace: opentelemetry-operator-system
+spec:
+  image: ghcr.io/dynatrace/dynatrace-otel-collector/dynatrace-otel-collector:latest
+  #image: otel/opentelemetry-collector-contrib:0.119.0
+  serviceAccount: collector
+  mode: deployment
+  volumeMounts:
+  - name: varlogpods
+    mountPath: /var/log/pods
+    readOnly: true
+  volumes:
+  - name: varlogpods
+    hostPath:
+      path: /var/log/pods  
+  env:
+  - name: DT_ENDPOINT
+    valueFrom:
+      secretKeyRef:
+        key: dt-endpoint
+        name: dynatrace-endpoint
+  - name: DT_API_TOKEN
+    valueFrom:
+      secretKeyRef:
+        key: dt-access-token
+        name: dynatrace-access-token
+  - name: KONG_DEPLOYMENT_NAME
+    value: kong-ecommerce-deployment
+  config:
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+          http:
+            endpoint: 0.0.0.0:4318
+      prometheus:
+        config:
+          scrape_configs:
+            - job_name: 'otel-collector'
+              scrape_interval: 5s
+              kubernetes_sd_configs:
+              - role: pod
+              scheme: http
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              authorization:
+                credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              metrics_path: /metrics
+              relabel_configs:
+              - source_labels: [__meta_kubernetes_namespace]
+                action: keep
+                regex: "kong"
+              - source_labels: [__meta_kubernetes_pod_name]
+                action: keep
+                regex: "kong-kong-(.+)"
+              - source_labels: [__meta_kubernetes_pod_container_name]
+                action: keep
+                regex: "proxy"
+              - source_labels: [__meta_kubernetes_pod_container_port_number]
+                action: keep
+                regex: "8100"
+      #tcplog:
+      #  listen_address: 0.0.0.0:54525
+      #  operators:
+      #    - type: json_parser
+
+      filelog:
+        include:
+          - /var/log/pods/kong*/*/*.log
+        #exclude:
+        #  - /var/log/pods/*/otel-collector/*.log
+        include_file_path: true
+        operators:
+          - id: container-parser
+            type: container
+
+
+    exporters:
+      otlphttp:
+        endpoint: "${env:DT_ENDPOINT}"
+        headers:
+          Authorization: "Api-Token ${env:DT_API_TOKEN}"
+      prometheus:
+        endpoint: 0.0.0.0:8889
+      debug:
+        verbosity: detailed
+
+    processors:
+      cumulativetodelta:
+        include:
+      attributes:
+        actions:
+          - key: kong.deployment.name
+            value: "${KONG_DEPLOYMENT_NAME}"
+            action: insert
+
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [otlphttp]
+        metrics:
+          receivers: [otlp, prometheus]
+          processors: [cumulativetodelta, attributes]
+          exporters: [otlphttp, prometheus]
+        logs:
+          #receivers: [otlp, tcplog]
+          receivers: [otlp, filelog]
+          processors: []
+          exporters: [otlphttp]

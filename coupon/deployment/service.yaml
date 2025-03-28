@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: coupon
+spec:
+  selector:
+    app: coupon
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

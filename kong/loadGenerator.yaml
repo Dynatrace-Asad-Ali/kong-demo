@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name:  kong-dynatrace-consumer
+  namespace: kong-demo
+spec:
+  containers:
+  - name: kong-dynatrace-consumer
+    image: claudioacquaviva/kong-dynatrace-consumer:0.1
+    imagePullPolicy: Always
