@@ -84,14 +84,12 @@ spec:
         endpoint: "${env:DT_ENDPOINT}"
         headers:
           Authorization: "Api-Token ${env:DT_API_TOKEN}"
-      prometheus:
-        endpoint: 0.0.0.0:8889
       debug:
         verbosity: detailed
 
     processors:
       cumulativetodelta:
-        include:
+        include: {}
       attributes:
         actions:
           - key: kong.deployment.name
@@ -107,7 +105,7 @@ spec:
         metrics:
           receivers: [otlp, prometheus]
           processors: [cumulativetodelta, attributes]
-          exporters: [otlphttp, prometheus]
+          exporters: [otlphttp]
         logs:
           #receivers: [otlp, tcplog]
           receivers: [otlp, filelog]
