@@ -37,7 +37,7 @@ plugins:
       max_retry_time: 60
     read_timeout: 5000
     resource_attributes:
-      service.name: kong-otel
+      service.name: dynatrace-kong
     sampling_rate: null
     send_timeout: 5000
     traces_endpoint: http://collector-kong-collector.opentelemetry-operator-system.svc.cluster.local:4318/v1/traces

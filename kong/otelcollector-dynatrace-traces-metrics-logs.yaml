@@ -40,7 +40,7 @@ spec:
       prometheus:
         config:
           scrape_configs:
-            - job_name: 'otel-collector'
+            - job_name: 'dynatrace-kong'
               scrape_interval: 5s
               kubernetes_sd_configs:
               - role: pod
@@ -63,6 +63,7 @@ spec:
               - source_labels: [__meta_kubernetes_pod_container_port_number]
                 action: keep
                 regex: "8100"
+
       #tcplog:
       #  listen_address: 0.0.0.0:54525
       #  operators:
@@ -95,6 +96,23 @@ spec:
           - key: kong.deployment.name
             value: "${KONG_DEPLOYMENT_NAME}"
             action: insert
+          - key: k8s.deployment.name
+            action: delete
+          - key: k8s.node.name
+            action: delete
+      resource/k8s:
+        attributes:
+          - key: k8s.node.name
+            action: delete
+          - key: k8s.pod.name
+            action: delete
+          - key: k8s.pod.uid
+            action: delete
+          - key: k8s.container.name
+            action: delete
+          - key: k8s.namespace.name
+            action: delete
+
 
     service:
       pipelines:
@@ -104,7 +122,7 @@ spec:
           exporters: [otlphttp]
         metrics:
           receivers: [otlp, prometheus]
-          processors: [cumulativetodelta, attributes]
+          processors: [cumulativetodelta, attributes,resource/k8s]
           exporters: [otlphttp]
         logs:
           #receivers: [otlp, tcplog]
